@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 應用程式資訊 -->
+    <string name="app_name">CGMS BLE 客戶端</string>
+    
+    <!-- 按鈕標籤 -->
+    <string name="scan_for_cgms">掃描含 CGM 服務的裝置</string>
+    <string name="stop_scanning">停止掃描</string>
+    <string name="connected">已連線</string>
+    <string name="disconnect">中斷連線</string>
+    
+    <!-- 裝置列表 -->
+    <string name="unknown_device">未知裝置</string>
+    <string name="signal_strength">信號強度: %1$d dBm</string>
+    <string name="user_selected_connect">用戶選擇連接: %1$s</string>
+    
+    <!-- 掃描訊息 -->
+    <string name="bluetooth_not_enabled">藍牙未啟用</string>
+    <string name="scanner_failed">取得 BluetoothLeScanner 失敗</string>
+    <string name="scan_start">開始掃描（過濾 service 0x181F）… 剩餘 %1$d 秒</string>
+    <string name="scanning_countdown">掃描中… 剩餘 %1$d 秒</string>
+    <string name="scan_timeout">掃描超時(60秒)，停止掃描</string>
+    <string name="scan_timeout_message">掃描超時：60秒內未找到 CGM 設備，請確認設備已開啟並在附近</string>
+    <string name="stop_scan">停止掃描</string>
+    <string name="scan_failed">掃描失敗: %1$d</string>
+    
+    <!-- 連線訊息 -->
+    <string name="connection_state_error">連線狀態錯誤: %1$d</string>
+    <string name="connected_discovering">已連線，開始發現服務…</string>
+    <string name="disconnected">已斷線</string>
+    <string name="active_disconnect">主動中斷連線…</string>
+    <string name="service_discovery_failed">發現服務失敗: %1$d</string>
+    <string name="cgm_service_not_found">未找到 CGM Service (0x181F)</string>
+    <string name="cgm_service_found">找到 CGM Service</string>
+    <string name="cgm_measurement_not_found">未找到 CGM Measurement (0x2AA7)</string>
+    <string name="cccd_not_found">找不到 CCCD 0x2902</string>
+    <string name="subscribe_cgm_measurement">訂閱 CGM Measurement 通知… %1$s</string>
+    <string name="ok">成功</string>
+    <string name="fail">失敗</string>
+    
+    <!-- 裝置發現 -->
+    <string name="device_found">發現裝置: %1$s (%2$s) RSSI: %3$d dBm</string>
+    
+    <!-- 日誌標籤 -->
+    <string name="feature_log">[功能] %1$s</string>
+    <string name="status_log">[狀態] %1$s</string>
+    <string name="session_start_log">[會話開始] %1$s</string>
+    <string name="session_run_log">[會話執行] %1$s</string>
+    <string name="measurement_log">[測量] %1$s</string>
+</resources>

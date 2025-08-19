@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 暗色主題顏色 -->
+    <color name="primary_dark">#1A1A1A</color>         <!-- 主要背景色 - 深黑 -->
+    <color name="secondary_dark">#2D2D2D</color>       <!-- 次要背景色 - 深灰 -->
+    <color name="surface_dark">#333333</color>         <!-- 表面色 - 中灰 -->
+    <color name="accent_dark">#4A90E2</color>          <!-- 強調色 - 藍色 -->
+    
+    <!-- 文字顏色 -->
+    <color name="text_primary_dark">#FFFFFF</color>    <!-- 主要文字 - 白色 -->
+    <color name="text_secondary_dark">#CCCCCC</color>  <!-- 次要文字 - 淺灰 -->
+    <color name="text_hint_dark">#888888</color>       <!-- 提示文字 - 暗灰 -->
+    
+    <!-- 按鈕顏色 -->
+    <color name="button_primary_dark">#4A90E2</color>  <!-- 主按鈕 - 藍色 -->
+    <color name="button_secondary_dark">#666666</color><!-- 次按鈕 - 灰色 -->
+    <color name="button_text_dark">#FFFFFF</color>     <!-- 按鈕文字 - 白色 -->
+    
+    <!-- 分隔線和邊框 -->
+    <color name="divider_dark">#444444</color>         <!-- 分隔線 - 深灰 -->
+    <color name="border_dark">#555555</color>          <!-- 邊框 - 中灰 -->
+    
+    <!-- 設備列表區域 -->
+    <color name="device_list_bg_dark">#222222</color>  <!-- 設備列表背景 -->
+    <color name="device_button_bg_dark">#3A3A3A</color><!-- 設備按鈕背景 -->
+    
+    <!-- 日誌區域 -->
+    <color name="log_bg_dark">#1E1E1E</color>          <!-- 日誌背景 -->
+</resources>

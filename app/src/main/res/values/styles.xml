@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 暗色主題 -->
+    <style name="AppTheme.Dark" parent="Theme.AppCompat.NoActionBar">
+        <!-- 主要顏色 -->
+        <item name="colorPrimary">@color/primary_dark</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorAccent">@color/accent_dark</item>
+        
+        <!-- 背景顏色 -->
+        <item name="android:windowBackground">@color/primary_dark</item>
+        <item name="android:colorBackground">@color/primary_dark</item>
+        
+        <!-- 文字顏色 -->
+        <item name="android:textColorPrimary">@color/text_primary_dark</item>
+        <item name="android:textColorSecondary">@color/text_secondary_dark</item>
+        <item name="android:textColorHint">@color/text_hint_dark</item>
+        
+        <!-- 按鈕樣式 -->
+        <item name="buttonStyle">@style/DarkButton</item>
+    </style>
+    
+    <!-- 暗色按鈕樣式 -->
+    <style name="DarkButton" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/dark_button_selector</item>
+        <item name="android:textColor">@color/button_text_dark</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:minHeight">48dp</item>
+    </style>
+    
+    <!-- 設備按鈕樣式 -->
+    <style name="DeviceButton" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/device_button_selector</item>
+        <item name="android:textColor">@color/text_primary_dark</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:padding">12dp</item>
+        <item name="android:minHeight">80dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+</resources>

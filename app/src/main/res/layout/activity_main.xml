@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:padding="16dp"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/primary_dark">
+
+    <!-- 上方區塊：裝置列表區域 (約1/3高度) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="@color/device_list_bg_dark"
+        android:padding="12dp">
+        
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔍 發現的 CGM 裝置："
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary_dark"
+            android:paddingBottom="12dp"/>
+        
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scrollbarThumbVertical="@color/border_dark">
+            
+            <LinearLayout
+                android:id="@+id/deviceListLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"/>
+                
+        </ScrollView>
+        
+    </LinearLayout>
+    
+    <!-- 分隔線 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:background="@color/divider_dark"
+        android:layout_marginVertical="8dp"/>
+
+    <!-- 下方區塊：控制和日誌區域 (約2/3高度) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:orientation="vertical"
+        android:background="@color/secondary_dark"
+        android:padding="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="8dp">
+
+            <Button
+                android:id="@+id/btnScan"
+                android:text="@string/scan_for_cgms"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                style="@style/DarkButton"/>
+
+            <Button
+                android:id="@+id/btnDisconnect"
+                android:text="@string/disconnect"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                style="@style/DarkButton"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📝 系統日誌："
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary_dark"
+            android:paddingBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/txtLog"
+            android:layout_width="match_parent" 
+            android:layout_height="0dp"
+            android:layout_weight="1" 
+            android:textIsSelectable="true"
+            android:textSize="11sp" 
+            android:padding="12dp"
+            android:typeface="monospace"
+            android:background="@color/log_bg_dark"
+            android:textColor="@color/text_secondary_dark"
+            android:scrollbars="vertical"/>
+    </LinearLayout>
+    
+</LinearLayout>
