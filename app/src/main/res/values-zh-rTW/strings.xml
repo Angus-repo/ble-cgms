@@ -35,6 +35,12 @@
     <string name="cgm_measurement_not_found">未找到 CGM Measurement (0x2AA7)</string>
     <string name="cccd_not_found">找不到 CCCD 0x2902</string>
     <string name="subscribe_cgm_measurement">訂閱 CGM Measurement 通知… %1$s</string>
+    <string name="request_bonding">請求與裝置配對以進行安全通知…</string>
+    <string name="bonded_continue">已完成配對，繼續啟用通知…</string>
+    <string name="bond_failed">配對失敗</string>
+    <string name="cccd_write_success">CCCD 寫入成功</string>
+    <string name="cccd_write_failed">CCCD 寫入失敗: %1$d</string>
+    <string name="try_reconnect">嘗試重新連線第 %1$d 次…</string>
     <string name="ok">成功</string>
     <string name="fail">失敗</string>
     

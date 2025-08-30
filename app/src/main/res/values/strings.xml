@@ -35,6 +35,12 @@
     <string name="cgm_measurement_not_found">CGM Measurement (0x2AA7) not found</string>
     <string name="cccd_not_found">CCCD 0x2902 not found</string>
     <string name="subscribe_cgm_measurement">Subscribe to CGM Measurement notifications… %1$s</string>
+    <string name="request_bonding">Requesting device bonding for secure notifications…</string>
+    <string name="bonded_continue">Bonding completed, continuing to enable notifications…</string>
+    <string name="bond_failed">Bonding failed</string>
+    <string name="cccd_write_success">CCCD write success</string>
+    <string name="cccd_write_failed">CCCD write failed: %1$d</string>
+    <string name="try_reconnect">Try reconnect #%1$d…</string>
     <string name="ok">ok</string>
     <string name="fail">fail</string>
     
