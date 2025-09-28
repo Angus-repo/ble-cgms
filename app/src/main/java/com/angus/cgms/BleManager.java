@@ -585,7 +585,8 @@ public class BleManager {
                 scanHandler.postDelayed(cccdTimeoutRunnable, CCCD_TIMEOUT_MS);
                 boolean submitted;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !isColorOsDevice()) {
-                    submitted = g.writeDescriptor(d, enableValue);
+                    int result = g.writeDescriptor(d, enableValue);
+                    submitted = (result == BluetoothStatusCodes.SUCCESS);
                 } else {
                     d.setValue(enableValue);
                     submitted = g.writeDescriptor(d);
