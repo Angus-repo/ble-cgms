@@ -7,9 +7,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.BroadcastReceiver;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelUuid;
+import android.os.SystemClock;
 import android.util.Log;
 
 import java.util.*;
@@ -72,15 +74,39 @@ public class BleManager {
     private static final int MAX_RECONNECT_ATTEMPTS = 3;
     private static final long RECONNECT_DELAY_MS = 2000;
     private static final long KEEPALIVE_INTERVAL_MS = 3000;
-    
-    private Handler scanHandler;
-    private static final long SCAN_TIMEOUT_MS = 60000; // 60秒超時
+    private static final long CONNECT_THROTTLE_MS = 2000;
+    private static final long BLE_CONNECT_TIME_LIMIT = 30000;
+    private static final int BLE_CONNECT_TIME_OUT = 1100;
+
+    private final Handler scanHandler;
+    private static final long SCAN_TIMEOUT_MS = 30000; // 30秒超時
     private static final long COUNTDOWN_INTERVAL_MS = 5000; // 每5秒顯示一次倒計時
     private int remainingSeconds;
-    
+    private boolean shouldSchedulePeriodicScan = true;
+    private boolean userRequestedStop = false;
+    private boolean isOnConnectState = false;
+    private long lastDisconnectTimestampMs = 0L;
+    private final int[] connectStatus = new int[]{-1, -1};
+
     // 儲存已發現的裝置，避免重複顯示
     private Set<String> foundDeviceAddresses = new HashSet<>();
     private boolean measurementReceived = false;
+    private final Runnable connectTimeoutRunnable = new Runnable() {
+        @Override public void run() {
+            if (isConnected || gatt == null) return;
+            logBoth(ctx.getString(R.string.connection_timeout));
+            connectStatus[0] = BLE_CONNECT_TIME_OUT;
+            connectStatus[1] = BluetoothGatt.GATT_FAILURE;
+            isOnConnectState = false;
+            BluetoothGatt localGatt = gatt;
+            gatt = null;
+            try { localGatt.disconnect(); } catch (Exception ignore) {}
+            try { localGatt.close(); } catch (Exception ignore) {}
+            lastDisconnectTimestampMs = SystemClock.elapsedRealtime();
+            if (connectionCallback != null) connectionCallback.onConnectionStateChanged(false);
+            scheduleReconnectIfNeeded();
+        }
+    };
     private final Runnable keepAliveRunnable = new Runnable() {
         @Override public void run() {
             if (gatt == null || !isConnected || measurementReceived) return;
@@ -116,28 +142,45 @@ public class BleManager {
 
     @SuppressLint("MissingPermission")
     public void startScanForCgmsService() {
-    if (adapter == null || !adapter.isEnabled()) { logBoth(ctx.getString(R.string.bluetooth_not_enabled)); return; }
-        scanner = adapter.getBluetoothLeScanner();
-    if (scanner == null) { logBoth(ctx.getString(R.string.scanner_failed)); return; }
+        startScanForCgmsService(true);
+    }
 
-        remainingSeconds = (int)(SCAN_TIMEOUT_MS / 1000); // Calculate remaining seconds from timeout
-        foundDeviceAddresses.clear(); // Clear previously found device records
-    logBoth(ctx.getString(R.string.scan_start, remainingSeconds));
+    @SuppressLint("MissingPermission")
+    public void startScanForCgmsService(boolean periodic) {
+        if (adapter == null || !adapter.isEnabled()) {
+            logBoth(ctx.getString(R.string.bluetooth_not_enabled));
+            return;
+        }
+        scanner = adapter.getBluetoothLeScanner();
+        if (scanner == null) {
+            logBoth(ctx.getString(R.string.scanner_failed));
+            return;
+        }
+
+        shouldSchedulePeriodicScan = periodic;
+        userRequestedStop = false;
+        scanHandler.removeCallbacks(scanTimeoutRunnable);
+        scanHandler.removeCallbacks(countdownRunnable);
+
+        remainingSeconds = (int) (SCAN_TIMEOUT_MS / 1000);
+        foundDeviceAddresses.clear();
+        logBoth(ctx.getString(R.string.scan_start, remainingSeconds));
         ScanFilter filter = new ScanFilter.Builder()
                 .setServiceUuid(new ParcelUuid(CGMS_SERVICE))
                 .build();
         ScanSettings settings = new ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+                .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+                .setReportDelay(0)
                 .build();
-        
+
         isScanning = true;
         if (scanningCallback != null) scanningCallback.onScanningStateChanged(true);
-        
+
         scanner.startScan(Collections.singletonList(filter), settings, scanCb);
-        
-        // 設置60秒超時
+
         scanHandler.postDelayed(scanTimeoutRunnable, SCAN_TIMEOUT_MS);
-        // 開始倒計時顯示
         scanHandler.postDelayed(countdownRunnable, COUNTDOWN_INTERVAL_MS);
     }
 
@@ -159,22 +202,33 @@ public class BleManager {
         @Override
         public void run() {
             Log.i(TAG, ctx.getString(R.string.scan_timeout));
-            scanHandler.removeCallbacks(countdownRunnable); // Stop countdown
-            stopScan();
+            scanHandler.removeCallbacks(countdownRunnable);
+            stopScanInternal(true);
             logBoth(ctx.getString(R.string.scan_timeout_message));
         }
-    };    @SuppressLint("MissingPermission")
+    };
+
+    @SuppressLint("MissingPermission")
     public void stopScan() {
+        userRequestedStop = true;
+        shouldSchedulePeriodicScan = false;
+        stopScanInternal(false);
+    }
+
+    private void stopScanInternal(boolean scheduleRescan) {
         if (scanner != null && isScanning) {
             Log.i(TAG, ctx.getString(R.string.stop_scan));
             logBoth(ctx.getString(R.string.stop_scan));
-            scanner.stopScan(scanCb);
+            try { scanner.stopScan(scanCb); } catch (Exception ignore) {}
             isScanning = false;
             if (scanningCallback != null) scanningCallback.onScanningStateChanged(false);
         }
-        // Cancel timeout and countdown handling
         scanHandler.removeCallbacks(scanTimeoutRunnable);
         scanHandler.removeCallbacks(countdownRunnable);
+        if (scheduleRescan && shouldSchedulePeriodicScan && !userRequestedStop && !isConnected) {
+            logBoth(ctx.getString(R.string.schedule_rescan));
+            scanHandler.postDelayed(() -> startScanForCgmsService(true), RECONNECT_DELAY_MS);
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -184,7 +238,10 @@ public class BleManager {
         scanHandler.removeCallbacks(countdownRunnable);
         scanHandler.removeCallbacks(keepAliveRunnable);
         scanHandler.removeCallbacks(cccdTimeoutRunnable);
-        
+        scanHandler.removeCallbacks(connectTimeoutRunnable);
+        userRequestedStop = true;
+        shouldSchedulePeriodicScan = false;
+
         if (scanner != null && isScanning) {
             scanner.stopScan(scanCb);
             isScanning = false;
@@ -195,11 +252,14 @@ public class BleManager {
             gatt.close();
             gatt = null;
         }
-    isConnected = false;
-    servicesDiscovered = false;
-    cccdEnabledChars.clear();
-    cccdInProgressChars.clear();
-    bondingInProgress = false;
+        isConnected = false;
+        servicesDiscovered = false;
+        cccdEnabledChars.clear();
+        cccdInProgressChars.clear();
+        bondingInProgress = false;
+        isOnConnectState = false;
+        connectStatus[0] = -1;
+        connectStatus[1] = -1;
         currentDevice = null;
         if (connectionCallback != null) connectionCallback.onConnectionStateChanged(false);
 
@@ -210,6 +270,9 @@ public class BleManager {
     public void disconnect() {
         if (gatt != null) {
             logBoth(ctx.getString(R.string.active_disconnect));
+            scanHandler.removeCallbacks(connectTimeoutRunnable);
+            isOnConnectState = false;
+            lastDisconnectTimestampMs = SystemClock.elapsedRealtime();
             gatt.disconnect();
         }
     }
@@ -225,7 +288,8 @@ public class BleManager {
     // Manually connect to selected device
     @SuppressLint("MissingPermission")
     public void connectToDevice(BluetoothDevice device) {
-    logBoth(ctx.getString(R.string.user_selected_connect, device.getAddress()));
+        String deviceName = device.getName() != null ? device.getName() : ctx.getString(R.string.unknown_device);
+        logBoth(ctx.getString(R.string.user_selected_connect, deviceName) + " (" + device.getAddress() + ")");
         stopScanAndConnect(device);
     }
 
@@ -260,15 +324,7 @@ public class BleManager {
 
     @SuppressLint("MissingPermission")
     private void stopScanAndConnect(BluetoothDevice dev) {
-        // Cancel timeout and countdown handling since device is found
-        scanHandler.removeCallbacks(scanTimeoutRunnable);
-        scanHandler.removeCallbacks(countdownRunnable);
-        
-        if (scanner != null && isScanning) {
-            scanner.stopScan(scanCb);
-            isScanning = false;
-            if (scanningCallback != null) scanningCallback.onScanningStateChanged(false);
-        }
+        stopScanInternal(false);
         currentDevice = dev;
         reconnectAttempts = 0;
         // 若尚未配對，先進行配對，待配對完成再連線，確保初次連線即為加密連線
@@ -277,18 +333,53 @@ public class BleManager {
             logBoth(ctx.getString(R.string.request_bonding));
             return;
         }
+        enqueueConnectWithThrottle(dev);
+    }
+
+    private void enqueueConnectWithThrottle(BluetoothDevice dev) {
+        if (dev == null) return;
+        long now = SystemClock.elapsedRealtime();
+        long earliestAllowed = lastDisconnectTimestampMs + CONNECT_THROTTLE_MS;
+        long delay = Math.max(0, earliestAllowed - now);
+        if (delay > 0) {
+            logBoth(ctx.getString(R.string.connection_throttle, delay));
+        }
+        scanHandler.postDelayed(() -> performConnect(dev), delay);
+    }
+
+    @SuppressLint("MissingPermission")
+    private void performConnect(BluetoothDevice dev) {
+        if (dev == null) return;
+        if (gatt != null) {
+            try { gatt.disconnect(); } catch (Exception ignore) {}
+            try { gatt.close(); } catch (Exception ignore) {}
+            gatt = null;
+        }
+        measurementReceived = false;
+        servicesDiscovered = false;
+        isOnConnectState = true;
+        connectStatus[0] = BluetoothProfile.STATE_CONNECTING;
+        connectStatus[1] = BluetoothGatt.GATT_SUCCESS;
+        logBoth(ctx.getString(R.string.connecting, dev.getAddress()));
+        scanHandler.removeCallbacks(connectTimeoutRunnable);
+        scanHandler.postDelayed(connectTimeoutRunnable, BLE_CONNECT_TIME_LIMIT);
         gatt = dev.connectGatt(ctx, false, gattCb, BluetoothDevice.TRANSPORT_LE);
     }
 
     private final BluetoothGattCallback gattCb = new BluetoothGattCallback() {
         @Override public void onConnectionStateChange(BluetoothGatt g, int status, int newState) {
+            connectStatus[0] = newState;
+            connectStatus[1] = status;
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 if (status == 19) {
                     logBoth(ctx.getString(R.string.connection_state_error, status) + " (peer terminated: security/multi-connection/idle policy)");
                 } else {
                     logBoth(ctx.getString(R.string.connection_state_error, status));
                 }
+                isOnConnectState = false;
+                scanHandler.removeCallbacks(connectTimeoutRunnable);
                 isConnected = false;
+                lastDisconnectTimestampMs = SystemClock.elapsedRealtime();
                 if (connectionCallback != null) connectionCallback.onConnectionStateChanged(false);
                 scheduleReconnectIfNeeded();
                 return;
@@ -296,6 +387,8 @@ public class BleManager {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 logBoth(ctx.getString(R.string.connected_discovering));
                 isConnected = true;
+                isOnConnectState = false;
+                scanHandler.removeCallbacks(connectTimeoutRunnable);
                 if (connectionCallback != null) connectionCallback.onConnectionStateChanged(true);
                 servicesDiscovered = false;
                 cccdEnabledChars.clear();
@@ -311,6 +404,9 @@ public class BleManager {
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 logBoth(ctx.getString(R.string.disconnected));
                 isConnected = false;
+                isOnConnectState = false;
+                scanHandler.removeCallbacks(connectTimeoutRunnable);
+                lastDisconnectTimestampMs = SystemClock.elapsedRealtime();
                 if (connectionCallback != null) connectionCallback.onConnectionStateChanged(false);
                 if (gatt != null) {
                     gatt.close();
@@ -472,11 +568,12 @@ public class BleManager {
             final int props = c.getProperties();
             logBoth("[CGM] Properties notify=" + (((props & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) ? "1" : "0") +
                     ", indicate=" + (((props & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) ? "1" : "0"));
+            byte[] enableValue;
             if ((props & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0 &&
                 (props & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0) {
-                d.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+                enableValue = BluetoothGattDescriptor.ENABLE_INDICATION_VALUE.clone();
             } else {
-                d.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                enableValue = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE.clone();
             }
             if (cccdOpInFlight) {
                 cccdQueue.offer(cu);
@@ -486,7 +583,21 @@ public class BleManager {
                 cccdOpInFlight = true;
                 logBoth("[CCCD] write start [" + cu + "]");
                 scanHandler.postDelayed(cccdTimeoutRunnable, CCCD_TIMEOUT_MS);
-                g.writeDescriptor(d);
+                boolean submitted;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !isColorOsDevice()) {
+                    submitted = g.writeDescriptor(d, enableValue);
+                } else {
+                    d.setValue(enableValue);
+                    submitted = g.writeDescriptor(d);
+                }
+                if (!submitted) {
+                    logBoth(ctx.getString(R.string.cccd_write_submit_failed));
+                    cccdInProgressChars.remove(cu);
+                    cccdOpInFlight = false;
+                    scanHandler.removeCallbacks(cccdTimeoutRunnable);
+                    processNextCccdInQueue();
+                    return;
+                }
             }
             String resultText = ok ? ctx.getString(R.string.ok) : ctx.getString(R.string.fail);
             logBoth(ctx.getString(R.string.subscribe_cgm_measurement, resultText));
@@ -502,7 +613,9 @@ public class BleManager {
             logBoth("[CGM] No CCCD. descriptors=" + ids.toString().trim());
             logBoth(ctx.getString(R.string.cccd_not_found));
         }
-    }    private void scheduleEnableNotifyWithDelay(BluetoothGatt g, BluetoothGattCharacteristic c, long delayMs) {
+    }
+
+    private void scheduleEnableNotifyWithDelay(BluetoothGatt g, BluetoothGattCharacteristic c, long delayMs) {
         if (c == null) return;
         UUID cu = c.getUuid();
         if (cccdEnabledChars.contains(cu) || cccdInProgressChars.contains(cu)) return;
@@ -554,7 +667,7 @@ public class BleManager {
                 logBoth(ctx.getString(R.string.bonded_continue));
                 // 若尚未連線（預先配對流程），此時開始連線；否則續行 CCCD 啟用
                 if (gatt == null) {
-                    gatt = currentDevice.connectGatt(ctx, false, gattCb, BluetoothDevice.TRANSPORT_LE);
+                    enqueueConnectWithThrottle(currentDevice);
                 } else if (servicesDiscovered) {
                     continueAfterBonding();
                 } else {
@@ -567,6 +680,13 @@ public class BleManager {
         }
     };
 
+    private boolean isColorOsDevice() {
+        String manufacturer = Build.MANUFACTURER;
+        if (manufacturer == null) return false;
+        String lower = manufacturer.toLowerCase(Locale.US);
+        return lower.contains("oppo") || lower.contains("realme") || lower.contains("oneplus");
+    }
+
     private void scheduleReconnectIfNeeded() {
         if (currentDevice == null) return;
         if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) return;
@@ -574,7 +694,7 @@ public class BleManager {
         scanHandler.postDelayed(() -> {
             if (gatt != null) return; // already connected or connecting
             logBoth(ctx.getString(R.string.try_reconnect, reconnectAttempts));
-            gatt = currentDevice.connectGatt(ctx, false, gattCb, BluetoothDevice.TRANSPORT_LE);
+            enqueueConnectWithThrottle(currentDevice);
         }, RECONNECT_DELAY_MS);
     }
 
