@@ -1,0 +1,15 @@
+## Android SDK location
+# 請複製此檔案為 local.properties 並設定您的 SDK 路徑
+sdk.dir=${user.home}/Library/Android/sdk
+
+## NDK location (如果需要)
+# ndk.dir=${sdk.dir}/ndk/25.2.9519653
+
+## CMake location (如果需要)
+# cmake.dir=${sdk.dir}/cmake/3.22.1
+
+## 簽名設定 (Release 版本用，請勿 commit 實際值)
+# android.injected.signing.store.file=path/to/your/keystore.jks
+# android.injected.signing.store.password=your_store_password
+# android.injected.signing.key.alias=your_key_alias
+# android.injected.signing.key.password=your_key_password
