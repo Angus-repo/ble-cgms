@@ -243,6 +243,10 @@ gradle --refresh-dependencies build
 ~/Library/Android/sdk/build-tools/34.0.0/aapt dump badging ./app/build/outputs/apk/debug/app-debug.apk
 ```
 
+## 📚 Additional Documentation
+
+- [AiDEXX CGM BLE 實作規格](dev_info/AIDEXX_CGM_BLE_SPEC.md)：詳述掃描、連線、通知與資料解析的完整介面規範，協助對接專有發射器。
+
 ## 📊 Build Output
 
 ### File Structure

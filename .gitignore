@@ -1,6 +1,7 @@
 .gradle
 .vscode
 .DS_Store
+local.properties
 
 # Local configuration file (sdk path, etc)
 local.properties
